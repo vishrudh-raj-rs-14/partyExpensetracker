@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,8 +11,16 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { signIn, signUp, sendMagicLink } = useAuth()
+  const { user, loading: authLoading, signIn, signUp, sendMagicLink } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/parties', { replace: true })
+    }
+  }, [user, authLoading, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,12 +33,16 @@ export function LoginPage() {
           title: 'Account created',
           description: 'You have been signed in successfully!',
         })
+        // Redirect to main page after successful signup
+        navigate('/parties', { replace: true })
       } else {
         await signIn(email, password)
         toast({
           title: 'Signed in',
           description: 'Welcome back!',
         })
+        // Redirect to main page after successful login
+        navigate('/parties', { replace: true })
       }
     } catch (error: any) {
       toast({
@@ -68,6 +81,20 @@ export function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading while checking auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
+
+  // Don't render login form if already logged in (will redirect)
+  if (user) {
+    return null
   }
 
   return (

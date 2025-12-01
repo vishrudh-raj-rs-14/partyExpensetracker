@@ -43,13 +43,32 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   )
 }
 
+function LoginRoute() {
+  const { user, loading } = useAuth()
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
+  
+  // Redirect to main page if already logged in
+  if (user) {
+    return <Navigate to="/parties" replace />
+  }
+  
+  return <LoginPage />
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={<LoginRoute />} />
             <Route
               path="/parties"
               element={

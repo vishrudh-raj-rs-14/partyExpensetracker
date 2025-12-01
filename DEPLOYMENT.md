@@ -34,6 +34,14 @@ This guide will help you deploy your Expense Tracker to Vercel and set up easy u
    - Replace with your actual values from Appwrite
    - Make sure to add them for **Production**, **Preview**, and **Development**
 
+4. **Configure CORS in Appwrite (IMPORTANT!)**
+   - Go to your Appwrite Console → Your Project → **Settings** → **Platforms**
+   - Click **"Add Platform"** → Select **"Web App"**
+   - Enter your Vercel domain: `https://your-project.vercel.app`
+   - Also add: `https://your-project.vercel.app/*` (with wildcard)
+   - Click **"Save"**
+   - **This is required to fix "Failed to fetch" errors!**
+
 4. **Deploy**
    - Click **"Deploy"**
    - Wait for deployment to complete
@@ -135,10 +143,22 @@ vercel --prod
 - Check build logs in Vercel dashboard
 - Try building locally: `npm run build`
 
+### "Failed to fetch" error on sign up/login
+**This is a CORS issue!** Follow these steps:
+
+1. Go to Appwrite Console → Your Project → **Settings** → **Platforms**
+2. Click **"Add Platform"** → Select **"Web App"**
+3. Add your Vercel domain: `https://your-project.vercel.app`
+4. Click **"Save"**
+5. Refresh your Vercel app and try again
+
+📖 **Detailed guide**: See [CORS_SETUP.md](./CORS_SETUP.md)
+
 ### App doesn't work after deployment
-- Verify environment variables are correct
+- Verify environment variables are correct in Vercel
 - Check browser console for errors
-- Make sure Appwrite CORS settings allow your Vercel domain
+- **Make sure Appwrite CORS settings allow your Vercel domain** (see above)
+- Verify Appwrite endpoint URL is correct
 
 ### Updates not showing
 - Clear browser cache (hard refresh: Cmd+Shift+R / Ctrl+Shift+R)

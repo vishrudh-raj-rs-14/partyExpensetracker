@@ -35,23 +35,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!password) {
       throw new Error('Password is required for sign in')
     }
-    await account.createEmailPasswordSession(email, password)
-    const user = await account.get()
-    setUser(user)
-  }
-
-  const signUp = async (email: string, password: string) => {
-    await account.create(ID.unique(), email, password)
-    // Try to create session - if email verification is required, this will fail
-    // In that case, user needs to verify email first
     try {
       await account.createEmailPasswordSession(email, password)
       const user = await account.get()
       setUser(user)
     } catch (error: any) {
-      // If session creation fails due to unverified email, throw a helpful error
-      if (error.code === 401 || error.message?.includes('verif')) {
-        throw new Error('Please verify your email address. Check your inbox for a verification email.')
+      // Handle "session already exists" error - logout and try again
+      if (
+        error.message?.toLowerCase().includes('session') ||
+        error.message?.toLowerCase().includes('already exists') ||
+        error.code === 409 ||
+        (error.code === 401 && error.message?.toLowerCase().includes('session'))
+      ) {
+        try {
+          // Delete all sessions and try again
+          // Try deleteSessions first, fallback to deleteSession('current')
+          try {
+            if (typeof (account as any).deleteSessions === 'function') {
+              await (account as any).deleteSessions()
+            } else {
+              await account.deleteSession('current')
+            }
+          } catch (deleteError) {
+            // Ignore delete errors, just try to create new session
+          }
+          // Retry creating session
+          await account.createEmailPasswordSession(email, password)
+          const user = await account.get()
+          setUser(user)
+          return
+        } catch (retryError: any) {
+          // If retry fails, throw the original error
+          throw error
+        }
+      }
+      // Handle network/CORS errors
+      if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch') || error.type === 'network') {
+        throw new Error('Network error: Please check your Appwrite CORS settings. Add your Vercel domain to allowed origins in Appwrite Settings → Platforms.')
+      }
+      throw error
+    }
+  }
+
+  const signUp = async (email: string, password: string) => {
+    try {
+      await account.create(ID.unique(), email, password)
+      // Try to create session - if email verification is required, this will fail
+      // In that case, user needs to verify email first
+      try {
+        await account.createEmailPasswordSession(email, password)
+        const user = await account.get()
+        setUser(user)
+      } catch (error: any) {
+        // If session creation fails due to unverified email, throw a helpful error
+        if (error.code === 401 || error.message?.includes('verif')) {
+          throw new Error('Please verify your email address. Check your inbox for a verification email.')
+        }
+        throw error
+      }
+    } catch (error: any) {
+      // Handle network/CORS errors
+      if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch') || error.type === 'network') {
+        throw new Error('Network error: Please check your Appwrite CORS settings. Add your Vercel domain to allowed origins in Appwrite Settings → Platforms.')
       }
       throw error
     }
