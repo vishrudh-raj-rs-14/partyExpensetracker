@@ -24,16 +24,15 @@ export function PartiesPage() {
       }
       console.log('Fetching parties for user:', user.$id)
       try {
-        // Try ordering by $createdAt, fallback to $id if it fails
         const response = await databases.listDocuments<Party>(
           databaseId,
           COLLECTIONS.PARTIES,
           [Query.equal('userId', user.$id), Query.orderDesc('$id')]
         )
-        // Sort by createdAt in JavaScript if needed
+        // Sort by $createdAt in JavaScript
         const sorted = response.documents.sort((a, b) => {
-          const dateA = new Date(a.$createdAt || a.createdAt || 0).getTime()
-          const dateB = new Date(b.$createdAt || b.createdAt || 0).getTime()
+          const dateA = new Date(a.$createdAt || 0).getTime()
+          const dateB = new Date(b.$createdAt || 0).getTime()
           return dateB - dateA // Descending order
         })
         return sorted

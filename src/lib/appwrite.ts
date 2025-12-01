@@ -1,4 +1,5 @@
 import { Client, Account, Databases, ID, Query } from 'appwrite'
+import type { Models } from 'appwrite'
 
 const appwriteEndpoint = import.meta.env.VITE_APPWRITE_ENDPOINT || ''
 const appwriteProjectId = import.meta.env.VITE_APPWRITE_PROJECT_ID || ''
@@ -45,41 +46,33 @@ export const COLLECTIONS = {
 // Helper functions
 export { ID, Query }
 
-// Type definitions
-export type Party = {
-  $id: string
+// Type definitions - extend Appwrite Document
+export type Party = Models.Document & {
   name: string
   town: string
   userId: string
-  createdAt: string
 }
 
-export type ExpenseHead = {
-  $id: string
+export type ExpenseHead = Models.Document & {
   name: string
   category: 'need' | 'wants' | 'pride' | 'unexpected'
   userId: string
-  createdAt: string
 }
 
-export type PartyTransaction = {
-  $id: string
+export type PartyTransaction = Models.Document & {
   partyId: string
   amount: number
   description?: string
   isPaid: boolean
   date: string
   userId: string
-  createdAt: string
 }
 
-export type ExpenseTransaction = {
-  $id: string
+export type ExpenseTransaction = Models.Document & {
   expenseHeadId: string
   amount: number
   description?: string
   date: string
   userId: string
-  createdAt: string
 }
 

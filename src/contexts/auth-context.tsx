@@ -58,7 +58,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const sendMagicLink = async (email: string) => {
-    await account.createMagicURLSession(ID.unique(), email, `${window.location.origin}/login`)
+    // Create magic URL token for passwordless login
+    // Note: Method name may vary by Appwrite SDK version
+    try {
+      // Try the newer method name first
+      if (typeof (account as any).createMagicURLToken === 'function') {
+        await (account as any).createMagicURLToken(ID.unique(), email, `${window.location.origin}/login`)
+      } else if (typeof (account as any).createMagicURLSession === 'function') {
+        await (account as any).createMagicURLSession(ID.unique(), email, `${window.location.origin}/login`)
+      } else {
+        throw new Error('Magic URL method not available in this Appwrite SDK version')
+      }
+    } catch (error: any) {
+      // If magic URL fails, throw a helpful error
+      throw new Error(error.message || 'Failed to send magic link. Please use email/password login instead.')
+    }
   }
 
   const signOut = async () => {
