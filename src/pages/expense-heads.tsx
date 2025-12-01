@@ -45,6 +45,26 @@ export function ExpenseHeadsPage() {
     enabled: !!user?.$id,
   })
 
+  // Fetch expense transactions to check if expense heads have transactions
+  const { data: expenseTransactions = [] } = useQuery({
+    queryKey: ['expense_transactions', user?.$id],
+    queryFn: async () => {
+      if (!user?.$id) return []
+      const response = await databases.listDocuments(
+        databaseId,
+        COLLECTIONS.EXPENSE_TRANSACTIONS,
+        [Query.equal('userId', user.$id)]
+      )
+      return response.documents
+    },
+    enabled: !!user?.$id,
+  })
+
+  // Helper function to check if an expense head has transactions
+  const expenseHeadHasTransactions = (expenseHeadId: string) => {
+    return expenseTransactions.some((transaction: any) => transaction.expenseHeadId === expenseHeadId)
+  }
+
   const createMutation = useMutation({
     mutationFn: async (data: { name: string; category: ExpenseCategory }) => {
       if (!user?.$id) throw new Error('User not authenticated')
@@ -171,24 +191,31 @@ export function ExpenseHeadsPage() {
                   key={head.$id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div>
+                  <div className="flex-1">
                     <div className="font-medium">{head.name}</div>
                     <div className="text-sm text-muted-foreground">
                       Category: {categoryLabels[head.category as ExpenseCategory]}
                     </div>
+                    {expenseHeadHasTransactions(head.$id) && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Cannot delete: has transactions
+                      </div>
+                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (confirm('Are you sure you want to delete this expense head?')) {
-                        deleteMutation.mutate(head.$id)
-                      }
-                    }}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {!expenseHeadHasTransactions(head.$id) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this expense head?')) {
+                          deleteMutation.mutate(head.$id)
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

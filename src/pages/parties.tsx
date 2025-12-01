@@ -46,6 +46,26 @@ export function PartiesPage() {
     enabled: !!user?.$id,
   })
 
+  // Fetch party transactions to check if parties have transactions
+  const { data: partyTransactions = [] } = useQuery({
+    queryKey: ['party_transactions', user?.$id],
+    queryFn: async () => {
+      if (!user?.$id) return []
+      const response = await databases.listDocuments(
+        databaseId,
+        COLLECTIONS.PARTY_TRANSACTIONS,
+        [Query.equal('userId', user.$id)]
+      )
+      return response.documents
+    },
+    enabled: !!user?.$id,
+  })
+
+  // Helper function to check if a party has transactions
+  const partyHasTransactions = (partyId: string) => {
+    return partyTransactions.some((transaction: any) => transaction.partyId === partyId)
+  }
+
   const createMutation = useMutation({
     mutationFn: async (data: { name: string; town: string }) => {
       if (!user?.$id) throw new Error('User not authenticated')
@@ -185,22 +205,29 @@ export function PartiesPage() {
                   key={party.$id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div>
+                  <div className="flex-1">
                     <div className="font-medium">{party.name}</div>
                     <div className="text-sm text-muted-foreground">{party.town}</div>
+                    {partyHasTransactions(party.$id) && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Cannot delete: has transactions
+                      </div>
+                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (confirm('Are you sure you want to delete this party?')) {
-                        deleteMutation.mutate(party.$id)
-                      }
-                    }}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {!partyHasTransactions(party.$id) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this party?')) {
+                          deleteMutation.mutate(party.$id)
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
