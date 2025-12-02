@@ -41,6 +41,7 @@ export function TransactionsPage() {
 
   // Expense transaction form state
   const [expenseHeadId, setExpenseHeadId] = useState('')
+  const [expensePartyId, setExpensePartyId] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
   const [expenseDescription, setExpenseDescription] = useState('')
   const [expenseDate, setExpenseDate] = useState(formatDate(new Date()))
@@ -116,16 +117,18 @@ export function TransactionsPage() {
     })
   }, [partyTransactions, parties])
 
-  // Join expense transactions with expense heads
+  // Join expense transactions with expense heads and parties
   const expenseTransactionsWithDetails = useMemo(() => {
     return expenseTransactions.map((transaction) => {
       const expenseHead = expenseHeads.find((h) => h.$id === transaction.expenseHeadId)
+      const party = parties.find((p) => p.$id === transaction.partyId)
       return {
         ...transaction,
         expenseHead,
+        party,
       }
     })
-  }, [expenseTransactions, expenseHeads])
+  }, [expenseTransactions, expenseHeads, parties])
 
   // Create party transaction
   const createPartyTransactionMutation = useMutation({
@@ -175,6 +178,7 @@ export function TransactionsPage() {
   const createExpenseTransactionMutation = useMutation({
     mutationFn: async (data: {
       expenseHeadId: string
+      partyId: string
       amount: number
       description?: string
       date: string
@@ -182,6 +186,7 @@ export function TransactionsPage() {
       if (!user?.$id) throw new Error('User not authenticated')
       const documentData: any = {
         expenseHeadId: data.expenseHeadId,
+        partyId: data.partyId,
         amount: data.amount,
         date: data.date,
         userId: user.$id,
@@ -195,6 +200,7 @@ export function TransactionsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expense_transactions'] })
       setExpenseHeadId('')
+      setExpensePartyId('')
       setExpenseAmount('')
       setExpenseDescription('')
       setExpenseDate(formatDate(new Date()))
@@ -275,7 +281,7 @@ export function TransactionsPage() {
 
   const handleExpenseSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!expenseHeadId || !expenseAmount) {
+    if (!expenseHeadId || !expensePartyId || !expenseAmount) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields',
@@ -285,6 +291,7 @@ export function TransactionsPage() {
     }
     createExpenseTransactionMutation.mutate({
       expenseHeadId,
+      partyId: expensePartyId,
       amount: parseFloat(expenseAmount),
       description: expenseDescription.trim() || undefined,
       date: expenseDate,
@@ -482,6 +489,23 @@ export function TransactionsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
+                    <label htmlFor="expense-party" className="text-sm font-medium">
+                      Party *
+                    </label>
+                    <Select value={expensePartyId} onValueChange={setExpensePartyId} required>
+                      <SelectTrigger id="expense-party">
+                        <SelectValue placeholder="Select party" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {parties.map((party) => (
+                          <SelectItem key={party.$id} value={party.$id}>
+                            {party.name} ({party.town})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
                     <label htmlFor="expense-amount" className="text-sm font-medium">
                       Amount *
                     </label>
@@ -552,6 +576,10 @@ export function TransactionsPage() {
                       <div className="flex-1">
                         <div className="font-medium">
                           {transaction.expenseHead?.name || 'Unknown'}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Party: {transaction.party?.name || 'Unknown'}
+                          {transaction.party?.town && ` (${transaction.party.town})`}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {formatCurrency(transaction.amount)} - {transaction.date}

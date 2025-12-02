@@ -84,6 +84,7 @@ Create the following collections in your database:
 
 **Attributes:**
 - `expenseHeadId` (String, 255, required)
+- `partyId` (String, 255, required)
 - `amount` (Double, required)
 - `description` (String, 1000, optional)
 - `date` (String, 255, required) - Format: YYYY-MM-DD
@@ -92,6 +93,7 @@ Create the following collections in your database:
 **Indexes:**
 - `userId` (ascending)
 - `expenseHeadId` (ascending)
+- `partyId` (ascending)
 - `date` (descending)
 
 **Permissions:**

@@ -88,7 +88,7 @@ export function ReportsPage() {
 
   // Fetch expense transactions
   const { data: expenseTransactions = [] } = useQuery({
-    queryKey: ['expense_transactions_report', fromDate, toDate, selectedExpenseHead],
+    queryKey: ['expense_transactions_report', fromDate, toDate, selectedExpenseHead, selectedParty],
     queryFn: async () => {
       if (!user?.$id) return []
       const queries = [
@@ -99,6 +99,9 @@ export function ReportsPage() {
       ]
       if (selectedExpenseHead !== 'all') {
         queries.push(Query.equal('expenseHeadId', selectedExpenseHead))
+      }
+      if (selectedParty !== 'all') {
+        queries.push(Query.equal('partyId', selectedParty))
       }
       const response = await databases.listDocuments<ExpenseTransaction>(
         databaseId,
@@ -121,16 +124,18 @@ export function ReportsPage() {
     })
   }, [partyTransactions, parties])
 
-  // Join expense transactions with expense heads
+  // Join expense transactions with expense heads and parties
   const expenseTransactionsWithDetails = useMemo(() => {
     return expenseTransactions.map((transaction) => {
       const expenseHead = expenseHeads.find((h) => h.$id === transaction.expenseHeadId)
+      const party = parties.find((p) => p.$id === transaction.partyId)
       return {
         ...transaction,
         expenseHead,
+        party,
       }
     })
-  }, [expenseTransactions, expenseHeads])
+  }, [expenseTransactions, expenseHeads, parties])
 
   // Calculate totals
   const partyTotalPaid = partyTransactionsWithDetails
@@ -193,24 +198,44 @@ export function ReportsPage() {
                 </div>
               )}
               {(reportType === 'expense' || reportType === 'combined') && (
-                <div className="space-y-2">
-                  <label htmlFor="expense-filter" className="text-sm font-medium">
-                    Filter by Expense Head
-                  </label>
-                  <Select value={selectedExpenseHead} onValueChange={setSelectedExpenseHead}>
-                    <SelectTrigger id="expense-filter">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Expense Heads</SelectItem>
-                      {expenseHeads.map((head) => (
-                        <SelectItem key={head.$id} value={head.$id}>
-                          {head.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="expense-filter" className="text-sm font-medium">
+                      Filter by Expense Head
+                    </label>
+                    <Select value={selectedExpenseHead} onValueChange={setSelectedExpenseHead}>
+                      <SelectTrigger id="expense-filter">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Expense Heads</SelectItem>
+                        {expenseHeads.map((head) => (
+                          <SelectItem key={head.$id} value={head.$id}>
+                            {head.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="expense-party-filter" className="text-sm font-medium">
+                      Filter by Party
+                    </label>
+                    <Select value={selectedParty} onValueChange={setSelectedParty}>
+                      <SelectTrigger id="expense-party-filter">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Parties</SelectItem>
+                        {parties.map((party) => (
+                          <SelectItem key={party.$id} value={party.$id}>
+                            {party.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -363,10 +388,11 @@ export function ReportsPage() {
                 <div className="space-y-2">
                   <div className="grid grid-cols-12 gap-2 p-2 font-semibold text-sm border-b bg-muted/50 rounded-t">
                     <div className="col-span-2 sm:col-span-1">Date</div>
-                    <div className="col-span-4 sm:col-span-3">Expense Head</div>
-                    <div className="col-span-3 sm:col-span-2">Amount</div>
+                    <div className="col-span-3 sm:col-span-2">Expense Head</div>
+                    <div className="col-span-3 sm:col-span-2">Party</div>
+                    <div className="col-span-2 sm:col-span-1">Amount</div>
                     <div className="col-span-2 sm:col-span-2">Category</div>
-                    <div className="col-span-1 sm:col-span-4 hidden sm:block">Description</div>
+                    <div className="col-span-0 sm:col-span-4 hidden sm:block">Description</div>
                   </div>
                   {expenseTransactionsWithDetails.map((transaction) => (
                     <div
@@ -374,10 +400,18 @@ export function ReportsPage() {
                       className="grid grid-cols-12 gap-2 p-2 border-b hover:bg-accent/50 transition-colors text-sm"
                     >
                       <div className="col-span-2 sm:col-span-1">{transaction.date}</div>
-                      <div className="col-span-4 sm:col-span-3 font-medium">
+                      <div className="col-span-3 sm:col-span-2 font-medium">
                         {transaction.expenseHead?.name || 'Unknown'}
                       </div>
-                      <div className="col-span-3 sm:col-span-2 font-semibold">
+                      <div className="col-span-3 sm:col-span-2 text-muted-foreground">
+                        {transaction.party?.name || 'Unknown'}
+                        {transaction.party?.town && (
+                          <span className="text-xs block sm:inline sm:ml-1">
+                            ({transaction.party.town})
+                          </span>
+                        )}
+                      </div>
+                      <div className="col-span-2 sm:col-span-1 font-semibold">
                         {formatCurrency(transaction.amount)}
                       </div>
                       <div className="col-span-2 sm:col-span-2">

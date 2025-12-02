@@ -70,6 +70,7 @@ export type PartyTransaction = Models.Document & {
 
 export type ExpenseTransaction = Models.Document & {
   expenseHeadId: string
+  partyId: string
   amount: number
   description?: string
   date: string
